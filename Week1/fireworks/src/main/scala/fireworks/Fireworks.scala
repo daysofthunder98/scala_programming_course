@@ -33,8 +33,18 @@ object Firework:
    * You will have to use “typed patterns” to match on case classes and
    * “literal patterns” to match on case objects.
    */
-  def next(firework: Firework): Firework =
-    ???
+  def next(firework: Firework): Firework = {
+    firework match {
+      case Done => Done
+      case Waiting(countDown, startPosition, numberOfParticles, particlesColor) => Waiting(
+        countDown, startPosition, numberOfParticles, particlesColor
+      ).next
+      case Launched(countDown, position, direction, numberOfParticles, particlesColor) => Launched(
+        countDown, position, direction, numberOfParticles, particlesColor
+      ).next
+      case Exploding(countDown, particles) => Exploding(countDown, particles).next
+    }
+  }
 
 end Firework
 
@@ -60,8 +70,11 @@ case class Waiting(countDown: Int, startPosition: Point, numberOfParticles: Int,
    */
   def next: Firework =
     if countDown > 0 then
-      copy(countDown = countDown - 1)
-    else ???
+      // decrease counter and keep waiting if countdown is > 0
+      Waiting(countDown-1, startPosition, numberOfParticles, particlesColor)
+    else
+      // launch
+      Launched.init(position = startPosition, numberOfParticles = numberOfParticles, particlesColor = particlesColor)
 
 end Waiting
 
@@ -109,7 +122,15 @@ case class Launched(countDown: Int, position: Point, direction: Angle, numberOfP
    *         and use the constant [[Settings.propulsionSpeed]] for the speed of the firework.
    */
   def next: Firework =
-    ???
+    if countDown > 0 then
+      val newpoint = Motion.movePoint(point = position, direction = direction, speed = Settings.propulsionSpeed)
+      Launched(
+        countDown-1, newpoint, direction, numberOfParticles, particlesColor
+      )
+    else
+      Exploding.init(
+        numberOfParticles = numberOfParticles, direction = direction,position = position, color = particlesColor
+      )
 
 end Launched
 
@@ -147,7 +168,13 @@ case class Exploding(countDown: Int, particles: Particles) extends Firework:
    *       of this firework.
    */
   def next: Firework =
-    ???
+    if countDown > 0 then
+      val newparticles = particles.next
+      Exploding(
+        countDown-1, newparticles
+      )
+    else
+        Done
 
 end Exploding
 
@@ -193,17 +220,21 @@ case class Particle(horizontalSpeed: Double, verticalSpeed: Double, position: Po
     // Horizontal speed is only subject to air friction, its next value
     // should be the current value reduced by air friction
     // Hint: use the operation `Motion.drag`
-    val updatedHorizontalSpeed: Double =
-      ???
+    val updatedHorizontalSpeed: Double = {
+      Motion.drag(horizontalSpeed)
+    }
     // Vertical speed is subject to both air friction and gravity, its next
     // value should be the current value minus the gravity, then reduced by
     // air friction
-    val updatedVerticalSpeed: Double =
-      ???
+    val updatedVerticalSpeed: Double = {
+      Motion.drag(verticalSpeed - Settings.gravity)
+    }
     // Particle position is updated according to its new speed
     val updatedPosition = Point(position.x + updatedHorizontalSpeed, position.y + updatedVerticalSpeed)
     // Construct a new particle with the updated position and speed
-    ???
+    Particle(
+      updatedHorizontalSpeed, updatedVerticalSpeed, updatedPosition, color
+    )
 
 end Particle
 
